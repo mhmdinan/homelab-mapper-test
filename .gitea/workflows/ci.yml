@@ -1,0 +1,42 @@
+name: CI Pipeline
+run-name: Build and Test Homelab Mapper
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Run Go Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Test Agent
+        working-directory: ./agent
+        run: go test -v ./...
+
+      - name: Test Server
+        working-directory: ./server
+        run: go test -v ./...
+
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Build Agent Image
+        run: docker build -t homelab-mapper-agent:latest ./agent
+
+      - name: Build Server Image
+        run: docker build -t homelab-mapper-server:latest ./server

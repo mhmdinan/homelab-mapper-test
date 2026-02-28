@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: homelab-mapper-server:latest
+    container_name: mapper_server_local
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+      - DB_PATH=/data/data.db
+
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    image: homelab-mapper-agent:latest
+    container_name: mapper_agent_local
+    privileged: true
+    ports:
+      - "8443:8443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    environment:
+      - PORT=8443
+      - AUTH_TOKEN=local-testing-token

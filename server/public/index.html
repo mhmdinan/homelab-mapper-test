@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homelab Mapper</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Homelab Mapper</h1>
+            <p>Real-time infrastructure and deployed app monitor</p>
+            <button id="add-host-btn" class="btn primary-btn">+ Add Host</button>
+        </header>
+
+        <main id="hosts-grid" class="grid">
+            <!-- Hosts injected here by JS -->
+            <div class="loader" id="main-loader">Loading...</div>
+        </main>
+    </div>
+
+    <!-- Modal for adding host -->
+    <div id="add-host-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <span class="close-btn">&times;</span>
+            <h2>Add New Host Agent</h2>
+            <form id="add-host-form">
+                <div class="form-group">
+                    <label for="host-name">Host Name</label>
+                    <input type="text" id="host-name" placeholder="e.g. Raspberry Pi 4" required>
+                </div>
+                <div class="form-group">
+                    <label for="host-url">Agent URL</label>
+                    <input type="url" id="host-url" placeholder="https://192.168.1.100:8443" required>
+                </div>
+                <div class="form-group">
+                    <label for="host-token">API Token (Optional)</label>
+                    <input type="password" id="host-token" placeholder="Your secret token">
+                </div>
+                <button type="submit" class="btn submit-btn">Connect Host</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
