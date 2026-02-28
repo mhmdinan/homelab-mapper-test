@@ -1,5 +1,7 @@
 # Homelab Mapper
 
+## THIS IS VIBE CODED AI SLOP !! BE WARNED
+
 A lightweight, secure, and modern tool to automatically map and monitor the hosts and deployed Docker apps in your homelab.
 
 ## Architecture
