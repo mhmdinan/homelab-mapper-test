@@ -1,23 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homelab Mapper</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
+
 <body>
     <div class="app-container">
         <header>
-            <h1>Homelab Mapper</h1>
-            <p>Real-time infrastructure and deployed app monitor</p>
-            <button id="add-host-btn" class="btn primary-btn">+ Add Host</button>
+            <div class="header-titles">
+                <h1>Homelab Mapper</h1>
+                <p>Real-time infrastructure and deployed app monitor</p>
+            </div>
+            <div class="header-actions">
+                <button id="view-toggle-btn" class="btn secondary-btn">Diagram View</button>
+                <button id="add-host-btn" class="btn primary-btn">+ Add Host</button>
+            </div>
         </header>
 
-        <main id="hosts-grid" class="grid">
-            <!-- Hosts injected here by JS -->
-            <div class="loader" id="main-loader">Loading...</div>
+        <main id="view-container">
+            <div id="hosts-grid" class="grid">
+                <!-- Hosts injected here by JS -->
+                <div class="loader" id="main-loader">Loading...</div>
+            </div>
+            <div id="diagram-container" class="hidden glass" style="height: 600px; border-radius: 16px;">
+                <!-- Vis.js network graph injected here -->
+            </div>
         </main>
     </div>
 
@@ -46,4 +59,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

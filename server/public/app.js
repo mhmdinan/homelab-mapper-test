@@ -10,7 +10,13 @@ async function fetchHosts() {
         const res = await fetch('/api/hosts');
         if (!res.ok) throw new Error('API failed');
         const hosts = await res.json();
-        renderHosts(hosts);
+        lastHostsData = hosts;
+
+        if (currentView === 'grid') {
+            renderHosts(hosts);
+        } else {
+            renderDiagram(hosts);
+        }
     } catch (e) {
         console.error("Failed to fetch hosts:", e);
     }
@@ -145,6 +151,134 @@ form.addEventListener('submit', async (e) => {
         btn.disabled = false;
     }
 });
+
+// --- Diagram & View Toggle ---
+const viewToggleBtn = document.getElementById('view-toggle-btn');
+const diagramContainer = document.getElementById('diagram-container');
+let currentView = 'grid'; // 'grid' | 'diagram'
+let network = null;
+let lastHostsData = [];
+
+viewToggleBtn.addEventListener('click', () => {
+    if (currentView === 'grid') {
+        currentView = 'diagram';
+        hostsGrid.classList.add('hidden');
+        diagramContainer.classList.remove('hidden');
+        viewToggleBtn.textContent = 'Grid View';
+        renderDiagram(lastHostsData);
+    } else {
+        currentView = 'grid';
+        diagramContainer.classList.add('hidden');
+        hostsGrid.classList.remove('hidden');
+        viewToggleBtn.textContent = 'Diagram View';
+        renderHosts(lastHostsData);
+    }
+});
+
+// Helper to guess icon from github.com/walkxcode/dashboard-icons
+function getAppIcon(imageStr) {
+    if (!imageStr) return 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png';
+
+    // Example: "linuxserver/jellyfin:latest" -> "jellyfin"
+    // Example: "ghcr.io/home-assistant/home-assistant:stable" -> "home-assistant"
+    let clean = imageStr.split(':')[0]; // remove tag
+    let parts = clean.split('/');
+    let appName = parts[parts.length - 1]; // get the last part
+
+    // Handle common names that might differ slightly in the icon repo
+    appName = appName.toLowerCase()
+        .replace('-web', '')
+        .replace('-app', '');
+
+    return `https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/${appName}.png`;
+}
+
+function renderDiagram(hosts) {
+    if (!diagramContainer) return;
+
+    let nodes = new vis.DataSet([]);
+    let edges = new vis.DataSet([]);
+
+    // Central Node (The Server/Router itself)
+    nodes.add({
+        id: 'server',
+        label: 'Homelab Mapper\n(Server)',
+        shape: 'image',
+        image: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/router.png',
+        size: 40,
+        font: { color: '#c9d1d9', size: 16, bold: true }
+    });
+
+    hosts.forEach(host => {
+        // Add Host Node
+        const hostId = `host_${host.id}`;
+        const isOnline = host.status === 'online';
+        nodes.add({
+            id: hostId,
+            label: `${host.name}\n${host.url}`,
+            shape: 'image',
+            image: isOnline ? 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/server.png' : 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/server-error.png',
+            size: 30,
+            font: { color: isOnline ? '#3fb950' : '#ff7b72', size: 14 }
+        });
+
+        // Edge from Server to Host
+        edges.add({
+            from: 'server',
+            to: hostId,
+            length: 150,
+            color: { color: isOnline ? 'rgba(35, 134, 54, 0.5)' : 'rgba(218, 54, 51, 0.5)' },
+            dashes: !isOnline
+        });
+
+        // Add App Nodes for this Host
+        if (host.containers && host.containers.length > 0) {
+            host.containers.forEach(c => {
+                const containerId = `app_${c.container_id}`;
+                const appTitle = c.names ? c.names.replace(/^\//, '') : c.container_id.substring(0, 8);
+                const isRunning = c.state === 'running';
+
+                nodes.add({
+                    id: containerId,
+                    label: appTitle,
+                    shape: 'image',
+                    image: getAppIcon(c.image),
+                    brokenImage: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png', // Fallback if no icon exists
+                    size: 20,
+                    font: { color: isRunning ? '#c9d1d9' : '#8b949e', size: 12 }
+                });
+
+                edges.add({
+                    from: hostId,
+                    to: containerId,
+                    length: 100,
+                    color: { color: isRunning ? 'rgba(88, 166, 255, 0.4)' : 'rgba(139, 148, 158, 0.4)' },
+                    dashes: !isRunning
+                });
+            });
+        }
+    });
+
+    const data = { nodes, edges };
+    const options = {
+        interaction: { hover: true },
+        physics: {
+            solver: 'forceAtlas2Based',
+            forceAtlas2Based: {
+                gravitationalConstant: -100,
+                centralGravity: 0.01,
+                springLength: 100,
+                springConstant: 0.08
+            }
+        }
+    };
+
+    if (network) {
+        // Destroy old network instance to prevent memory leaks if re-rendering completely
+        network.destroy();
+    }
+    network = new vis.Network(diagramContainer, data, options);
+}
 
 // Startup
 fetchHosts();
