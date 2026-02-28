@@ -74,6 +74,7 @@ type AgentMetricsResponse struct {
 // App State
 type App struct {
 	DB *sql.DB
+	mu sync.Mutex // Protects concurrent DB writes
 }
 
 func initDB() *sql.DB {
@@ -81,7 +82,11 @@ func initDB() *sql.DB {
 	if dbPath == "" {
 		dbPath = "data.db"
 	}
-	db, err := sql.Open("sqlite", dbPath)
+	
+	// Add pragmas for WAL mode and a busy timeout to handle concurrency gracefully
+	dsn := dbPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
+	
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		log.Fatalf("Failed to open DB: %v", err)
 	}
@@ -191,6 +196,9 @@ func (a *App) pollHost(client *http.Client, id int, url string, token string, wg
 }
 
 func (a *App) updateHostStatus(id int, status string, metrics *AgentMetricsResponse) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	if status == "offline" || metrics == nil {
 		a.DB.Exec("UPDATE hosts SET status = 'offline' WHERE id = ?", id)
 		return
@@ -282,7 +290,10 @@ func (a *App) addHostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	a.mu.Lock()
 	res, err := a.DB.Exec("INSERT INTO hosts (name, url, token) VALUES (?, ?, ?)", input.Name, input.URL, input.Token)
+	a.mu.Unlock()
+	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -301,8 +312,10 @@ func (a *App) deleteHostHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.Atoi(idStr)
 	
+	a.mu.Lock()
 	a.DB.Exec("DELETE FROM containers WHERE host_id = ?", id)
 	a.DB.Exec("DELETE FROM hosts WHERE id = ?", id)
+	a.mu.Unlock()
 	
 	w.WriteHeader(http.StatusOK)
 }
