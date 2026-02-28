@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Setup Go
         uses: actions/setup-go@v4
@@ -33,7 +33,7 @@ jobs:
     needs: test
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Build Agent Image
         run: docker build -t homelab-mapper-agent:latest ./agent
