@@ -10,7 +10,7 @@ jobs:
   test:
     name: Run Go Tests
     runs-on: ubuntu-latest
-    container: golang:1.26-bookworm
+    #container: golang:1.26-bookworm
     steps:
       - name: Check out repo
         uses: actions/checkout@v6
