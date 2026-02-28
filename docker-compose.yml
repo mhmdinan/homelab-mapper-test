@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    image: homelab-mapper-server:latest
+    image: git.home.mhmdinan.com/muhammadinan/homelab-mapper-server:latest
     container_name: mapper_server_local
     ports:
       - "8080:8080"
@@ -17,10 +14,7 @@ services:
       - DB_PATH=/data/data.db
 
   agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    image: homelab-mapper-agent:latest
+    image: git.home.mhmdinan.com/muhammadinan/homelab-mapper-agent:latest
     container_name: mapper_agent_local
     privileged: true
     ports:

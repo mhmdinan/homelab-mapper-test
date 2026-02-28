@@ -2,10 +2,7 @@ version: '3.8'
 
 services:
   agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    image: homelab-mapper-agent:latest
+    image: git.home.mhmdinan.com/muhammadinan/homelab-mapper-agent:latest
     container_name: mapper_agent
     privileged: true
     ports:
