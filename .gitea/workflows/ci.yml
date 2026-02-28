@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
 
 jobs:
@@ -41,10 +43,14 @@ jobs:
 
       - name: Build and Push Agent Image
         run: |
-          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest ./agent
+          AGENT_VERSION=$(cat ./agent/VERSION)
+          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:${AGENT_VERSION} ./agent
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest
+          docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:${AGENT_VERSION}
 
       - name: Build and Push Server Image
         run: |
-          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest ./server
+          SERVER_VERSION=$(cat ./server/VERSION)
+          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:${SERVER_VERSION} ./server
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest
+          docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:${SERVER_VERSION}
