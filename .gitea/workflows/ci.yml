@@ -36,8 +36,15 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v6
 
-      - name: Build Agent Image
-        run: docker build -t homelab-mapper-agent:latest ./agent
+      - name: Login to Docker Registry
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login git.home.mhmdinan.com -u "${{ gitea.actor }}" --password-stdin
 
-      - name: Build Server Image
-        run: docker build -t homelab-mapper-server:latest ./server
+      - name: Build and Push Agent Image
+        run: |
+          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest ./agent
+          docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest
+
+      - name: Build and Push Server Image
+        run: |
+          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest ./server
+          docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest
