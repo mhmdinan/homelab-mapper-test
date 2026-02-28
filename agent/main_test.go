@@ -15,9 +15,6 @@ func TestAuthMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Wrap handler
-	middleware := authMiddleware(mockHandler)
-
 	tests := []struct {
 		name           string
 		envToken       string
@@ -60,6 +57,9 @@ func TestAuthMiddleware(t *testing.T) {
 			handlerCalled = false
 			os.Setenv("AUTH_TOKEN", tt.envToken)
 			
+			// Re-wrap handler to pick up updated env token
+			middleware := authMiddleware(mockHandler)
+
 			req := httptest.NewRequest("GET", "/metrics", nil)
 			if tt.requestHeader != "" {
 				req.Header.Set("Authorization", tt.requestHeader)

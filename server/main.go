@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
