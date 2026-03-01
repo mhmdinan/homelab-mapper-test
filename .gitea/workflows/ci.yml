@@ -38,19 +38,45 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v6
 
-      - name: Login to Docker Registry
+      - name: Login to Gitea Registry
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login git.home.mhmdinan.com -u "${{ gitea.actor }}" --password-stdin
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "mhmdinan" --password-stdin
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "mhmdinan" --password-stdin
 
       - name: Build and Push Agent Image
         run: |
           AGENT_VERSION=$(cat ./agent/VERSION)
-          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:${AGENT_VERSION} ./agent
+          docker build -t agent-temp-image:latest ./agent
+          docker tag agent-temp-image:latest git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest
+          docker tag agent-temp-image:latest git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:${AGENT_VERSION}
+          docker tag agent-temp-image:latest ghcr.io/mhmdinan/homelab-mapper-agent:latest
+          docker tag agent-temp-image:latest ghcr.io/mhmdinan/homelab-mapper-agent:${AGENT_VERSION}
+          docker tag agent-temp-image:latest mhmdinan/homelab-mapper-agent:latest
+          docker tag agent-temp-image:latest mhmdinan/homelab-mapper-agent:${AGENT_VERSION}
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:latest
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-agent:${AGENT_VERSION}
+          docker push ghcr.io/mhmdinan/homelab-mapper-agent:latest
+          docker push ghcr.io/mhmdinan/homelab-mapper-agent:${AGENT_VERSION}
+          docker push mhmdinan/homelab-mapper-agent:latest
+          docker push mhmdinan/homelab-mapper-agent:${AGENT_VERSION}
 
       - name: Build and Push Server Image
         run: |
           SERVER_VERSION=$(cat ./server/VERSION)
-          docker build -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest -t git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:${SERVER_VERSION} ./server
+          docker build -t server-temp-image:latest ./server
+          docker tag server-temp-image:latest git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest
+          docker tag server-temp-image:latest git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:${SERVER_VERSION}
+          docker tag server-temp-image:latest ghcr.io/mhmdinan/homelab-mapper-server:latest
+          docker tag server-temp-image:latest ghcr.io/mhmdinan/homelab-mapper-server:${SERVER_VERSION}
+          docker tag server-temp-image:latest mhmdinan/homelab-mapper-server:latest
+          docker tag server-temp-image:latest mhmdinan/homelab-mapper-server:${SERVER_VERSION}
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:latest
           docker push git.home.mhmdinan.com/${{ gitea.actor }}/homelab-mapper-server:${SERVER_VERSION}
+          docker push ghcr.io/mhmdinan/homelab-mapper-server:latest
+          docker push ghcr.io/mhmdinan/homelab-mapper-server:${SERVER_VERSION}
+          docker push mhmdinan/homelab-mapper-server:latest
+          docker push mhmdinan/homelab-mapper-server:${SERVER_VERSION}
