@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   agent:
-    image: mhmdinan/homelab-mapper-agent:latest
+    image: git.home.mhmdinan.com/inan/homelab-mapper-agent:latest
     container_name: mapper_agent
     privileged: true
     ports:
