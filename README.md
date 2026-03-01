@@ -4,6 +4,8 @@
 
 A lightweight, secure, and modern tool to automatically map and monitor the hosts and deployed Docker apps in your homelab.
 
+![Homelab Mapper Dashboard](dashboard-preview.png)
+
 ## Architecture
 
 This project consists of two components:
