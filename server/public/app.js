@@ -206,54 +206,103 @@ function renderDiagram(hosts) {
         shape: 'image',
         image: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/router.png',
         size: 40,
-        font: { color: '#c9d1d9', size: 16, bold: true }
+        font: { color: '#c9d1d9', size: 16, bold: true },
+        x: 0,
+        y: -150
     });
 
-    hosts.forEach(host => {
+    const hostColumns = 2; // wider spacing for relaxed look
+    const hostWidth = 400;
+    const paddingX = 120;
+    const containerCols = 3; // fewer columns, more relaxed
+    const containerSpacing = 100; // increased spacing
+
+    hosts.forEach((host, i) => {
         // Add Host Node
-        const hostId = `host_${host.id}`;
         const isOnline = host.status === 'online';
+        const col = i % hostColumns;
+        const row = Math.floor(i / hostColumns);
+
+        const hx = (col - (hostColumns - 1) / 2) * (hostWidth + paddingX);
+        const hy = 150 + (row * 350);
+
+        const hostId = `host_${host.id}`;
+
+        const containerCount = host.containers ? host.containers.length : 0;
+        const cRows = Math.ceil(containerCount / containerCols);
+        const hostHeight = Math.max(120, 70 + (cRows * containerSpacing));
+
         nodes.add({
             id: hostId,
-            label: `${host.name}\n${host.url}`,
-            shape: 'image',
-            image: isOnline ? 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/server.png' : 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/server-error.png',
-            size: 30,
-            font: { color: isOnline ? '#3fb950' : '#ff7b72', size: 14 }
+            label: `${host.name}\n${host.url}`, // removed extra newlines, we'll use vadjust
+            shape: 'box',
+            color: {
+                background: isOnline ? 'rgba(35, 134, 54, 0.1)' : 'rgba(218, 54, 51, 0.1)',
+                border: isOnline ? '#3fb950' : '#ff7b72',
+                highlight: {
+                    background: isOnline ? 'rgba(35, 134, 54, 0.2)' : 'rgba(218, 54, 51, 0.2)',
+                    border: isOnline ? '#3fb950' : '#ff7b72'
+                },
+                hover: {
+                    background: isOnline ? 'rgba(35, 134, 54, 0.2)' : 'rgba(218, 54, 51, 0.2)',
+                    border: isOnline ? '#3fb950' : '#ff7b72'
+                }
+            },
+            zIndex: 0,
+            font: {
+                color: isOnline ? '#3fb950' : '#ff7b72',
+                size: 14,
+                align: 'center',
+                vadjust: - (hostHeight / 2) + 20 // Move text to top
+            },
+            margin: { top: 10, left: 10, right: 10, bottom: 10 },
+            x: hx,
+            y: hy,
+            fixed: true,
+            widthConstraint: { minimum: hostWidth, maximum: hostWidth },
+            heightConstraint: { minimum: hostHeight, valignment: 'top' }
         });
 
         // Edge from Server to Host
         edges.add({
             from: 'server',
             to: hostId,
-            length: 150,
             color: { color: isOnline ? 'rgba(35, 134, 54, 0.5)' : 'rgba(218, 54, 51, 0.5)' },
-            dashes: !isOnline
+            dashes: !isOnline,
+            smooth: {
+                type: 'orthogonal', // Grid-like edges
+                roundness: 0
+            }
         });
 
         // Add App Nodes for this Host
         if (host.containers && host.containers.length > 0) {
-            host.containers.forEach(c => {
+            host.containers.forEach((c, idx) => {
                 const containerId = `app_${c.container_id}`;
                 const appTitle = c.names ? c.names.replace(/^\//, '') : c.container_id.substring(0, 8);
                 const isRunning = c.state === 'running';
 
+                const cCol = idx % containerCols;
+                const cRow = Math.floor(idx / containerCols);
+
+                const gridWidth = Math.min(containerCount, containerCols) * containerSpacing;
+                const startX = hx - (gridWidth / 2) + (containerSpacing / 2);
+
+                const cx = startX + (cCol * containerSpacing);
+                const cy = hy - (hostHeight / 2) + 70 + (cRow * containerSpacing); // 70px down from top to clear title
+
                 nodes.add({
                     id: containerId,
-                    label: appTitle,
+                    label: appTitle.substring(0, 20), // Allow slightly longer names
                     shape: 'image',
                     image: getAppIcon(c.image),
                     brokenImage: 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png', // Fallback if no icon exists
-                    size: 20,
-                    font: { color: isRunning ? '#c9d1d9' : '#8b949e', size: 12 }
-                });
-
-                edges.add({
-                    from: hostId,
-                    to: containerId,
-                    length: 100,
-                    color: { color: isRunning ? 'rgba(88, 166, 255, 0.4)' : 'rgba(139, 148, 158, 0.4)' },
-                    dashes: !isRunning
+                    size: 16, // slightly larger icon
+                    font: { color: isRunning ? '#c9d1d9' : '#8b949e', size: 12 }, // larger font
+                    x: cx,
+                    y: cy,
+                    fixed: true,
+                    zIndex: 10
                 });
             });
         }
@@ -261,25 +310,18 @@ function renderDiagram(hosts) {
 
     const data = { nodes, edges };
     const options = {
-        interaction: { hover: true },
-        physics: {
-            solver: 'forceAtlas2Based',
-            forceAtlas2Based: {
-                gravitationalConstant: -100,
-                centralGravity: 0.01,
-                springLength: 100,
-                springConstant: 0.08
-            }
-        }
+        interaction: { hover: true, dragNodes: false },
+        physics: { enabled: false }
     };
 
     if (network) {
-        // Destroy old network instance to prevent memory leaks if re-rendering completely
-        network.destroy();
+        network.setData(data);
+        network.setOptions(options);
+    } else {
+        network = new vis.Network(diagramContainer, data, options);
     }
-    network = new vis.Network(diagramContainer, data, options);
 }
 
 // Startup
 fetchHosts();
-setInterval(fetchHosts, 5000);
+//setInterval(fetchHosts, 5000);
