@@ -188,7 +188,24 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 				if c.State == "running" {
 					stats, err := cli.ContainerStatsOneShot(context.Background(), c.ID)
 					if err == nil {
-						var v container.StatsResponse
+						var v struct {
+							MemoryStats struct {
+								Usage uint64 `json:"usage"`
+							} `json:"memory_stats"`
+							CPUStats struct {
+								CPUUsage struct {
+									TotalUsage uint64 `json:"total_usage"`
+									PercpuUsage []uint64 `json:"percpu_usage"`
+								} `json:"cpu_usage"`
+								SystemUsage uint64 `json:"system_usage"`
+							} `json:"cpu_stats"`
+							PreCPUStats struct {
+								CPUUsage struct {
+									TotalUsage uint64 `json:"total_usage"`
+								} `json:"cpu_usage"`
+								SystemUsage uint64 `json:"system_usage"`
+							} `json:"precpu_stats"`
+						}
 						if err := json.NewDecoder(stats.Body).Decode(&v); err == nil {
 							// Memory
 							contInfo.MemoryUsage = v.MemoryStats.Usage
