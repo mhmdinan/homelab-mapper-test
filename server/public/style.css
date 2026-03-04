@@ -297,10 +297,10 @@ header p {
 .modal-content {
     background: var(--bg-color);
     border: 1px solid var(--card-border);
-    border-radius: 12px;
-    padding: 2rem;
+    border-radius: 16px;
+    padding: 1.25rem;
     width: 90%;
-    max-width: 400px;
+    max-width: 320px;
     position: relative;
     transform: translateY(20px);
     transition: transform 0.3s ease;
@@ -358,6 +358,94 @@ header p {
 
 .submit-btn:hover {
     background: #2ea043;
+}
+
+/* Container Detail Modal Refinements */
+#container-detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: center;
+    text-align: center;
+}
+
+.detail-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    margin-bottom: 0.2rem;
+}
+
+.detail-icon {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px;
+    margin-bottom: 0.1rem;
+    object-fit: contain;
+}
+
+.detail-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.detail-info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+    width: 100%;
+    text-align: left;
+}
+
+.info-item {
+    background: rgba(0, 0, 0, 0.15);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+}
+
+.info-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.1rem;
+    display: block;
+    letter-spacing: 0.5px;
+}
+
+.info-val {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.8rem;
+    color: var(--text-main);
+    word-break: break-all;
+}
+
+.port-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+}
+
+.port-badge {
+    background: rgba(88, 166, 255, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(88, 166, 255, 0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.port-icon {
+    width: 14px !important;
+    height: 14px !important;
+    opacity: 0.8;
 }
 
 .hidden {

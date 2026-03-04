@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ type ContainerInfo struct {
 	Image  string   `json:"image"`
 	State  string   `json:"state"`
 	Status string   `json:"status"`
+	Ports  []string `json:"ports"`
 }
 
 type MetricsResponse struct {
@@ -149,12 +151,19 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error listing containers: %v", err)
 		} else {
 			for _, c := range containers {
+				var ports []string
+				for _, p := range c.Ports {
+					if p.PublicPort != 0 {
+						ports = append(ports, string(p.Type)+":"+strconv.Itoa(int(p.PublicPort)))
+					}
+				}
 				resp.Containers = append(resp.Containers, ContainerInfo{
 					ID:     c.ID[:10],
 					Names:  c.Names,
 					Image:  c.Image,
 					State:  c.State,
 					Status: c.Status,
+					Ports:  ports,
 				})
 			}
 		}

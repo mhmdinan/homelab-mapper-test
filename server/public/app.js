@@ -65,11 +65,13 @@ function renderHosts(hosts) {
             host.containers.forEach(c => {
                 const name = c.names ? c.names.replace(/^\//, '') : c.container_id.substring(0, 8);
                 const isRunning = c.state === 'running';
+                const ports = c.ports ? `<div class="app-status" style="color:var(--accent)">${c.ports}</div>` : '';
                 appsHtml += `
                 <div class="app-item ${isRunning ? 'running' : 'exited'}">
                     <div>
                         <div class="app-name">${name}</div>
                         <div class="app-status">${c.image}</div>
+                        ${ports}
                     </div>
                 </div>`;
             });
@@ -319,9 +321,72 @@ function renderDiagram(hosts) {
         network.setOptions(options);
     } else {
         network = new vis.Network(diagramContainer, data, options);
+
+        // --- Click listener for details ---
+        network.on("click", (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                if (nodeId.startsWith('app_')) {
+                    const containerId = nodeId.replace('app_', '');
+                    showContainerDetail(containerId);
+                }
+            }
+        });
     }
+}
+
+const detailModal = document.getElementById('container-detail-modal');
+const detailContent = document.getElementById('container-detail-content');
+const closeDetailBtn = document.getElementById('close-detail-btn');
+
+closeDetailBtn.onclick = () => detailModal.classList.add('hidden');
+detailModal.onclick = (e) => { if (e.target === detailModal) detailModal.classList.add('hidden'); };
+
+function showContainerDetail(containerId) {
+    // Find container data in lastHostsData
+    let found = null;
+    for (const host of lastHostsData) {
+        if (host.containers) {
+            found = host.containers.find(c => c.container_id === containerId);
+            if (found) break;
+        }
+    }
+
+    if (!found) return;
+
+    detailContent.innerHTML = `
+        <div class="detail-header">
+            <img src="${getAppIcon(found.image)}" class="detail-icon" onerror="this.src='https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/docker.png'">
+            <div class="detail-name">${found.names.replace(/^\//, '')}</div>
+            <span class="status-badge ${found.state === 'running' ? 'status-online' : 'status-offline'}">${found.state}</span>
+        </div>
+        <div class="detail-info-grid">
+            <div class="info-item">
+                <span class="info-label">Image Source</span>
+                <div class="info-val">${found.image}</div>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Network Ports</span>
+                <div class="port-list">
+                    ${(found.ports || 'None').split(', ').map(p => {
+        if (p === 'None') return '<span class="info-val">None</span>';
+        return `<span class="port-badge">
+                            <svg class="port-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            ${p}
+                        </span>`;
+    }).join('')}
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Current Status</span>
+                <div class="info-val">${found.status_str}</div>
+            </div>
+        </div>
+    `;
+
+    detailModal.classList.remove('hidden');
 }
 
 // Startup
 fetchHosts();
-//setInterval(fetchHosts, 5000);
+setInterval(fetchHosts, 5000); // Re-enabled polling

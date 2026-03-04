@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -43,6 +44,7 @@ type Container struct {
 	Image       string `json:"image"`
 	State       string `json:"state"`
 	StatusStr   string `json:"status_str"`
+	Ports       string `json:"ports"`
 }
 
 // Agent Response structure
@@ -64,6 +66,7 @@ type AgentContainerInfo struct {
 	Image  string   `json:"image"`
 	State  string   `json:"state"`
 	Status string   `json:"status"`
+	Ports  []string `json:"ports"`
 }
 
 type AgentMetricsResponse struct {
@@ -114,7 +117,8 @@ func initDB() *sql.DB {
 		names TEXT,
 		image TEXT,
 		state TEXT,
-		status_str TEXT
+		status_str TEXT,
+		ports TEXT
 	);
 	`
 	_, err = db.Exec(query)
@@ -224,9 +228,10 @@ func (a *App) updateHostStatus(id int, status string, metrics *AgentMetricsRespo
 		if len(c.Names) > 0 {
 			namesStr = c.Names[0]
 		}
-		a.DB.Exec(`INSERT INTO containers (host_id, container_id, names, image, state, status_str)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-			id, c.ID, namesStr, c.Image, c.State, c.Status)
+		portsStr := strings.Join(c.Ports, ", ")
+		a.DB.Exec(`INSERT INTO containers (host_id, container_id, names, image, state, status_str, ports)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			id, c.ID, namesStr, c.Image, c.State, c.Status, portsStr)
 	}
 }
 
@@ -257,11 +262,11 @@ func (a *App) getHostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Attach containers
 	for i := range hosts {
-		cRows, _ := a.DB.Query("SELECT container_id, names, image, state, status_str FROM containers WHERE host_id = ?", hosts[i].ID)
+		cRows, _ := a.DB.Query("SELECT container_id, names, image, state, status_str, ports FROM containers WHERE host_id = ?", hosts[i].ID)
 		var conts []Container
 		for cRows.Next() {
 			var c Container
-			cRows.Scan(&c.ContainerID, &c.Names, &c.Image, &c.State, &c.StatusStr)
+			cRows.Scan(&c.ContainerID, &c.Names, &c.Image, &c.State, &c.StatusStr, &c.Ports)
 			conts = append(conts, c)
 		}
 		cRows.Close()
@@ -329,6 +334,9 @@ func main() {
 	app.startPoller()
 
 	http.HandleFunc("/api/hosts", func(w http.ResponseWriter, r *http.Request) {
+		// Discourage browsers from forcing HTTPS on this local dev port
+		w.Header().Set("Strict-Transport-Security", "max-age=0")
+		
 		switch r.Method {
 		case http.MethodGet:
 			app.getHostsHandler(w, r)
@@ -343,14 +351,18 @@ func main() {
 
 	// Serve static files from 'public' directory
 	fs := http.FileServer(http.Dir("./public"))
-	http.Handle("/", fs)
+	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=0")
+		fs.ServeHTTP(w, r)
+	}))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s...", port)
+	log.Printf("Server starting on HTTP port %s (UI access)...", port)
+	log.Printf("Secure agent polling is active (InsecureSkipVerify enabled for agents).")
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatalf("Server failed: %v", err)

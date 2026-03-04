@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Homelab Mapper</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
@@ -37,7 +37,7 @@
     <!-- Modal for adding host -->
     <div id="add-host-modal" class="modal hidden">
         <div class="modal-content glass">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" id="close-add-btn">&times;</span>
             <h2>Add New Host Agent</h2>
             <form id="add-host-form">
                 <div class="form-group">
@@ -57,7 +57,17 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Modal for container details -->
+    <div id="container-detail-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <span class="close-btn" id="close-detail-btn">&times;</span>
+            <div id="container-detail-content">
+                <!-- Data injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=1.1"></script>
 </body>
 
 </html>
