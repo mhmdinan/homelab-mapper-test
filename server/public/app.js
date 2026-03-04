@@ -42,20 +42,26 @@ function renderHosts(hosts) {
         if (host.status === 'online') {
             const cpu = host.cpu_usage.toFixed(1) + '%';
             const mem = host.mem_percent.toFixed(1) + '%';
+            const diskPct = host.disk_total > 0 ? ((host.disk_used / host.disk_total) * 100).toFixed(1) + '%' : '0%';
             const uptime = formatUptime(host.uptime);
+
             statsHtml = `
-            <div class="metrics-bar">
+            <div class="metrics-bar" style="grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
                 <div class="metric">
                     <div class="metric-val">${cpu}</div>
-                    <div class="metric-label">CPU</div>
+                    <div class="metric-label">CPU (${host.cpu_cores || 0}c)</div>
                 </div>
                 <div class="metric">
                     <div class="metric-val">${mem}</div>
-                    <div class="metric-label">RAM</div>
+                    <div class="metric-label">RAM (${formatBytes(host.mem_total)})</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val">${diskPct}</div>
+                    <div class="metric-label">Disk (${formatBytes(host.disk_total)})</div>
                 </div>
                 <div class="metric">
                     <div class="metric-val">${uptime}</div>
-                    <div class="metric-label">UP</div>
+                    <div class="metric-label">Uptime</div>
                 </div>
             </div>`;
         }
@@ -101,6 +107,14 @@ function formatUptime(seconds) {
     if (d > 0) return `${d}d ${h}h`;
     const m = Math.floor(seconds % 3600 / 60);
     return `${h}h ${m}m`;
+}
+
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 // --- Interactions ---
@@ -375,6 +389,13 @@ function showContainerDetail(containerId) {
                             ${p}
                         </span>`;
     }).join('')}
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Resource Usage</span>
+                <div class="info-val" style="display: flex; gap: 0.8rem; color: var(--accent); font-weight: 600;">
+                    <span>RAM: ${formatBytes(found.memory_usage || 0)}</span>
+                    <span>CPU: ${(found.cpu_usage || 0).toFixed(1)}%</span>
                 </div>
             </div>
             <div class="info-item">

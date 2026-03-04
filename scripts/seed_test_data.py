@@ -36,9 +36,12 @@ def seed_data():
         last_seen DATETIME,
         uptime INTEGER DEFAULT 0,
         cpu_usage REAL DEFAULT 0,
+        cpu_cores INTEGER DEFAULT 0,
         mem_total INTEGER DEFAULT 0,
         mem_used INTEGER DEFAULT 0,
         mem_percent REAL DEFAULT 0,
+        disk_total INTEGER DEFAULT 0,
+        disk_used INTEGER DEFAULT 0,
         status TEXT DEFAULT 'offline'
     )""")
     
@@ -51,8 +54,16 @@ def seed_data():
         image TEXT,
         state TEXT,
         status_str TEXT,
-        ports TEXT
+        ports TEXT,
+        memory_usage INTEGER DEFAULT 0,
+        cpu_usage REAL DEFAULT 0
     )""")
+
+    cursor.execute("CREATE TABLE IF NOT EXISTS migrations (id INTEGER PRIMARY KEY, name TEXT)")
+    # Mark current migrations as applied since we seeded the exact latest schema
+    cursor.execute("INSERT OR IGNORE INTO migrations (id, name) VALUES (1, 'baseline_schema')")
+    cursor.execute("INSERT OR IGNORE INTO migrations (id, name) VALUES (2, 'add_host_extended_metrics')")
+    cursor.execute("INSERT OR IGNORE INTO migrations (id, name) VALUES (3, 'add_container_resource_metrics')")
 
     # Define some demo hosts
     hosts_to_add = [
@@ -81,10 +92,18 @@ def seed_data():
     for name, url, status in hosts_to_add:
         # Use ISO8601 string for compatibility
         now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+        
+        # New randomized hardware specs
+        cpu_cores = random.choice([2, 4, 8, 16])
+        mem_total = random.choice([8, 16, 32, 64]) * 1024 * 1024 * 1024 # GB to Bytes
+        mem_used = int(mem_total * random.uniform(0.1, 0.8))
+        disk_total = random.choice([128, 256, 512, 1024]) * 1024 * 1024 * 1024 # GB to Bytes
+        disk_used = int(disk_total * random.uniform(0.1, 0.7))
+
         cursor.execute("""
-            INSERT INTO hosts (name, url, status, last_seen, cpu_usage, mem_percent, uptime)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (name, url, status, now_iso, random.uniform(2, 45), random.uniform(10, 80), random.randint(3600, 1000000)))
+            INSERT INTO hosts (name, url, status, last_seen, cpu_usage, cpu_cores, mem_total, mem_used, mem_percent, disk_total, disk_used, uptime)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (name, url, status, now_iso, random.uniform(2, 45), cpu_cores, mem_total, mem_used, (mem_used/mem_total)*100, disk_total, disk_used, random.randint(3600, 1000000)))
         
         host_id = cursor.lastrowid
 
@@ -96,10 +115,14 @@ def seed_data():
             for img, app_name, ports in selected_apps:
                 state = "running" if random.random() > 0.1 else "exited"
                 container_id = os.urandom(8).hex()
+                # Randomize container stats
+                c_mem = random.randint(50, 800) * 1024 * 1024 if state == "running" else 0
+                c_cpu = random.uniform(0.1, 5.0) if state == "running" else 0
+
                 cursor.execute("""
-                    INSERT INTO containers (host_id, container_id, names, image, state, status_str, ports)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (host_id, container_id, "/" + app_name.lower().replace(" ", "-"), img, state, "Up 2 days" if state == "running" else "Exited (0) 5 hours ago", ports))
+                    INSERT INTO containers (host_id, container_id, names, image, state, status_str, ports, memory_usage, cpu_usage)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (host_id, container_id, "/" + app_name.lower().replace(" ", "-"), img, state, "Up 2 days" if state == "running" else "Exited (0) 5 hours ago", ports, c_mem, c_cpu))
 
     conn.commit()
     conn.close()

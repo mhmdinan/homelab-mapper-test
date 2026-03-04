@@ -20,6 +20,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -30,19 +31,24 @@ type SystemInfo struct {
 	Platform string  `json:"platform"`
 	Uptime   uint64  `json:"uptime_seconds"`
 	CPUUsage float64 `json:"cpu_usage_percent"`
+	CPUCores int     `json:"cpu_cores"`
 	MemTotal uint64  `json:"mem_total"`
 	MemUsed  uint64  `json:"mem_used"`
 	MemFree  uint64  `json:"mem_free"`
 	MemPct   float64 `json:"mem_percent"`
+	DiskTotal uint64 `json:"disk_total"`
+	DiskUsed  uint64 `json:"disk_used"`
 }
 
 type ContainerInfo struct {
-	ID     string   `json:"id"`
-	Names  []string `json:"names"`
-	Image  string   `json:"image"`
-	State  string   `json:"state"`
-	Status string   `json:"status"`
-	Ports  []string `json:"ports"`
+	ID          string   `json:"id"`
+	Names       []string `json:"names"`
+	Image       string   `json:"image"`
+	State       string   `json:"state"`
+	Status      string   `json:"status"`
+	Ports       []string `json:"ports"`
+	MemoryUsage uint64   `json:"memory_usage"` // bytes
+	CPUUsage    float64  `json:"cpu_usage"`    // percent
 }
 
 type MetricsResponse struct {
@@ -132,12 +138,23 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 		resp.System.CPUUsage = cpuPercents[0]
 	}
 
+	cores, err := cpu.Counts(true)
+	if err == nil {
+		resp.System.CPUCores = cores
+	}
+
 	memStat, err := mem.VirtualMemory()
 	if err == nil {
 		resp.System.MemTotal = memStat.Total
 		resp.System.MemUsed = memStat.Used
 		resp.System.MemFree = memStat.Free
 		resp.System.MemPct = memStat.UsedPercent
+	}
+
+	diskStat, err := disk.Usage("/")
+	if err == nil {
+		resp.System.DiskTotal = diskStat.Total
+		resp.System.DiskUsed = diskStat.Used
 	}
 
 	// 2. Get Docker Containers
@@ -157,14 +174,37 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 						ports = append(ports, string(p.Type)+":"+strconv.Itoa(int(p.PublicPort)))
 					}
 				}
-				resp.Containers = append(resp.Containers, ContainerInfo{
+
+				contInfo := ContainerInfo{
 					ID:     c.ID[:10],
 					Names:  c.Names,
 					Image:  c.Image,
 					State:  c.State,
 					Status: c.Status,
 					Ports:  ports,
-				})
+				}
+
+				// Basic resource stats for running containers
+				if c.State == "running" {
+					stats, err := cli.ContainerStatsOneShot(context.Background(), c.ID)
+					if err == nil {
+						var v container.StatsResponse
+						if err := json.NewDecoder(stats.Body).Decode(&v); err == nil {
+							// Memory
+							contInfo.MemoryUsage = v.MemoryStats.Usage
+							
+							// CPU (Simple Approximation for one-shot)
+							cpuDelta := float64(v.CPUStats.CPUUsage.TotalUsage) - float64(v.PreCPUStats.CPUUsage.TotalUsage)
+							systemDelta := float64(v.CPUStats.SystemUsage) - float64(v.PreCPUStats.SystemUsage)
+							if systemDelta > 0.0 && cpuDelta > 0.0 {
+								contInfo.CPUUsage = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+							}
+						}
+						stats.Body.Close()
+					}
+				}
+
+				resp.Containers = append(resp.Containers, contInfo)
 			}
 		}
 	}
