@@ -9,13 +9,7 @@ services:
       - "8443:8443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/host/root:ro
     restart: unless-stopped
     environment:
       - PORT=8443
-      - AUTH_TOKEN=my-secure-token-123
-      - HOST_PROC=/host/proc
-      - HOST_SYS=/host/sys
-      - HOST_ETC=/host/root/etc
+      - AUTH_TOKEN=token

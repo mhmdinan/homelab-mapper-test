@@ -1,10 +1,22 @@
 # Homelab Mapper
 
-## THIS IS VIBE CODED AI SLOP !! BE WARNED
+A lightweight, secure, and modern tool to automatically map and monitor the hosts and deployed Docker apps in your homelab.  
+**Disclaimer:** This project was built with the help of AI and is not intended for professional deployment
 
-A lightweight, secure, and modern tool to automatically map and monitor the hosts and deployed Docker apps in your homelab.
+<figure>
+  <img src="./pictures/dashboard.png" alt="Homelab Mapper Dashboard" />
+  <figcaption>Dashboard view of hosts.</figcaption>
+</figure>   
 
-![Homelab Mapper Dashboard](dashboard-preview.png)
+<figure>
+  <img src="./pictures/diagram-view.png" alt="Diagram view of containers" />
+  <figcaption>Diagram showing visual of containers deployed on each host.</figcaption>
+</figure>  
+
+<figure>
+  <img src="./pictures/container-details.png" alt="Container details popup" />
+  <figcaption>Clicking on a container provides its detail via a popup.</figcaption>
+</figure>  
 
 ## Architecture
 
@@ -24,7 +36,7 @@ If you want to test the server and agent together on the same machine without bu
 docker-compose up -d --build
 ```
 
-Then visit `http://localhost:8080` in your browser. You can add the local agent by specifying the URL `https://mapper_agent_local:8443` and token `local-testing-token`.
+Then visit `http://localhost:8080` in your browser. You can add the local agent by specifying the URL `https://mapper_agent_local:8443` and token `token`.
 
 ## Production Deployment
 
@@ -34,7 +46,7 @@ Deploy the server on your primary management node using the `docker-compose.serv
 ```bash
 docker-compose -f docker-compose.server.yml up -d
 ```
-Access the dashboard at `http://<server-ip>:8080`.
+Access the dashboard at `http://<server-ip>:<server port, default is 8080>`.
 
 ### 2. Deploy Agents on your Hosts
 On every machine in your homelab you want to monitor, deploy the agent using the `docker-compose.agent.yml` file. 
@@ -46,8 +58,8 @@ docker-compose -f docker-compose.agent.yml up -d
 
 ### 3. Link them up
 Go to the server dashboard, click **+ Add Host**, and enter:
-* **Name**: `My Raspberry Pi`
-* **URL**: `https://<agent-ip>:8443`
+* **Name**: `Name of server`
+* **URL**: `https://<agent-ip>:<agent port, default is 8443>`
 * **API Token**: `<your-secure-token>`
 
 The server will automatically start polling the agent and mapping your systems and deployed apps!

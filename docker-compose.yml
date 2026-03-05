@@ -24,4 +24,4 @@ services:
     restart: unless-stopped
     environment:
       - PORT=8443
-      - AUTH_TOKEN=local-testing-token
+      - AUTH_TOKEN=token
